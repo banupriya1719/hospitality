@@ -4,15 +4,18 @@ FROM openjdk:17-jdk-slim
 # Set working directory
 WORKDIR /app
 
-# Copy Maven wrapper and pom.xml
+# Copy Maven wrapper files
 COPY mvnw .
 COPY .mvn .mvn
 COPY pom.xml .
 
-# Pre-download dependencies
-RUN chmod +x mvnw && ./mvnw dependency:go-offline
+# Give execute permission to mvnw (important line!)
+RUN chmod +x mvnw
 
-# Copy all source code
+# Pre-download dependencies
+RUN ./mvnw dependency:go-offline
+
+# Copy the rest of the source code
 COPY . .
 
 # Build the Spring Boot app
