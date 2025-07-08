@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Doctors</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-image: url('https://images.unsplash.com/photo-1588776814546-ec7dbe3f3a58');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+    .sidebar {
+      height: 100vh;
+      background-color: rgba(0, 123, 255, 0.9);
+      color: white;
+      padding-top: 20px;
+    }
+    .sidebar a {
+      color: white;
+      display: block;
+      padding: 12px 20px;
+      text-decoration: none;
+    }
+    .sidebar a:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    .main {
+      padding: 30px;
+      background-color: rgba(255,255,255,0.95);
+      min-height: 100vh;
+    }
+  </style>
+</head>
+<body>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-2 sidebar">
+      <h4 class="text-center">🏥 Hospital</h4>
+      <a href="index.html">🏠 Dashboard</a>
+      <a href="patients.html">👨‍⚕️ Patients</a>
+      <a href="doctors.html">🦧 Doctors</a>
+      <a href="appointments.html">🗕️ Appointments</a>
+      <a href="medications.html">💊 Medications</a>
+    </div>
+    <div class="col-md-10 main">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="text-primary">Doctors</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDoctorModal">➕ Add Doctor</button>
+      </div>
+      <input class="form-control mb-3" id="searchInput" placeholder="Search by name or contact...">
+      <table class="table table-bordered table-hover shadow-sm">
+        <thead class="table-primary">
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Specialization</th>
+          <th>Contact</th>
+          <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody id="doctorsTable"></tbody>
+      </table>
+      <div class="d-flex justify-content-between">
+        <button class="btn btn-outline-primary" id="prevPage">Previous</button>
+        <button class="btn btn-outline-primary" id="nextPage">Next</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade" id="addDoctorModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="addDoctorForm">
+        <div class="modal-header">
+          <h5 class="modal-title">Add / Edit Doctor</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="id" id="editId">
+          <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input type="text" class="form-control" name="name" id="editName" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Specialization</label>
+            <input type="text" class="form-control" name="specialization" id="editSpecialization" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Contact</label>
+            <input type="tel" class="form-control" name="contact" id="editContact" required pattern="[0-9]{10}" maxlength="10" title="Please enter a valid 10-digit phone number">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- View Modal -->
+<div class="modal fade" id="viewDoctorModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">View Doctor</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="viewDoctorDetails"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  let currentPage = 0;
+  const pageSize = 5;
+  let doctors = [];
+
+  const renderTable = () => {
+    const searchValue = document.getElementById('searchInput').value.toLowerCase();
+    const filtered = doctors.filter(d => d.name.toLowerCase().includes(searchValue) || d.contact.includes(searchValue));
+    const paginated = filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+    document.getElementById('doctorsTable').innerHTML = paginated.map(d => `
+      <tr>
+        <td>${d.id}</td>
+        <td>${d.name}</td>
+        <td>${d.specialization}</td>
+        <td>${d.contact}</td>
+        <td>
+          <button class="btn btn-info btn-sm" onclick="viewDoctor('${d.id}')">View</button>
+          <button class="btn btn-warning btn-sm" onclick="editDoctor('${d.id}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="confirmDelete('${d.id}')">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+  };
+
+  const loadDoctors = () => {
+    fetch('http://localhost:8080/api/doctors')
+      .then(res => res.json())
+      .then(data => {
+        doctors = data;
+        renderTable();
+      });
+  };
+
+  const confirmDelete = id => {
+    if (confirm("Are you sure you want to delete this doctor?")) {
+      fetch(`http://localhost:8080/api/doctors/${id}`, { method: 'DELETE' })
+        .then(() => loadDoctors());
+    }
+  };
+
+  const viewDoctor = id => {
+    const d = doctors.find(doc => doc.id === id);
+    document.getElementById("viewDoctorDetails").innerHTML = `
+      <p><strong>ID:</strong> ${d.id}</p>
+      <p><strong>Name:</strong> ${d.name}</p>
+      <p><strong>Specialization:</strong> ${d.specialization}</p>
+      <p><strong>Contact:</strong> ${d.contact}</p>
+    `;
+    new bootstrap.Modal(document.getElementById("viewDoctorModal")).show();
+  };
+
+  const editDoctor = id => {
+    const d = doctors.find(doc => doc.id === id);
+    document.getElementById('editId').value = d.id;
+    document.getElementById('editName').value = d.name;
+    document.getElementById('editSpecialization').value = d.specialization;
+    document.getElementById('editContact').value = d.contact;
+    new bootstrap.Modal(document.getElementById('addDoctorModal')).show();
+  };
+
+  document.getElementById('addDoctorForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const doctor = Object.fromEntries(formData.entries());
+
+    if (!doctor.name || !doctor.specialization || !doctor.contact) {
+      alert("All fields are required!");
+      return;
+    }
+
+    if (!/^[0-9]{10}$/.test(doctor.contact)) {
+      alert("Phone number must be exactly 10 digits.");
+      return;
+    }
+
+    const method = doctor.id ? 'PUT' : 'POST';
+    const url = doctor.id ? `http://localhost:8080/api/doctors/${doctor.id}` : 'http://localhost:8080/api/doctors';
+
+    fetch(url, {
+      method: method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(doctor)
+    }).then(() => {
+      this.reset();
+      bootstrap.Modal.getInstance(document.getElementById('addDoctorModal')).hide();
+      loadDoctors();
+    });
+  });
+
+  document.getElementById('prevPage').onclick = () => { if (currentPage > 0) currentPage--; renderTable(); };
+  document.getElementById('nextPage').onclick = () => { if ((currentPage + 1) * pageSize < doctors.length) currentPage++; renderTable(); };
+  document.getElementById('searchInput').oninput = renderTable;
+
+  loadDoctors();
+</script>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Medications</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-image: url('https://images.unsplash.com/photo-1588776814546-ec7dbe3f3a58');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+    .sidebar {
+      height: 100vh;
+      background-color: rgba(0, 123, 255, 0.9);
+      color: white;
+      padding-top: 20px;
+    }
+    .sidebar a {
+      color: white;
+      display: block;
+      padding: 12px 20px;
+      text-decoration: none;
+    }
+    .sidebar a:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    .main {
+      padding: 30px;
+      background-color: rgba(255,255,255,0.95);
+      min-height: 100vh;
+    }
+  </style>
+</head>
+<body>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-2 sidebar">
+      <h4 class="text-center">🏥 Hospital</h4>
+      <a href="index.html">🏠 Dashboard</a>
+      <a href="patients.html">👨‍⚕️ Patients</a>
+      <a href="doctors.html">🦧 Doctors</a>
+      <a href="appointments.html">🗕️ Appointments</a>
+      <a href="medications.html">💊 Medications</a>
+    </div>
+    <div class="col-md-10 main">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="text-primary">Medications</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMedicationModal">➕ Add Medication</button>
+      </div>
+      <input class="form-control mb-3" id="searchInput" placeholder="Search by patient ID or medication name...">
+      <table class="table table-bordered table-hover shadow-sm">
+        <thead class="table-primary">
+        <tr>
+          <th>ID</th>
+          <th>Patient ID</th>
+          <th>Name</th>
+          <th>Dosage</th>
+          <th>Instructions</th>
+          <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody id="medicationsTable"></tbody>
+      </table>
+      <div class="d-flex justify-content-between">
+        <button class="btn btn-outline-primary" id="prevPage">Previous</button>
+        <button class="btn btn-outline-primary" id="nextPage">Next</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade" id="addMedicationModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="addMedicationForm">
+        <div class="modal-header">
+          <h5 class="modal-title">Add / Edit Medication</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="id" id="editId">
+          <div class="mb-3">
+            <label class="form-label">Patient ID</label>
+            <input type="text" class="form-control" name="patientId" id="editPatientId" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input type="text" class="form-control" name="name" id="editName" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Dosage</label>
+            <input type="text" class="form-control" name="dosage" id="editDosage" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Instructions</label>
+            <textarea class="form-control" name="instructions" id="editInstructions" rows="3" required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- View Modal -->
+<div class="modal fade" id="viewMedicationModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">View Medication</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="viewMedicationDetails"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  let currentPage = 0;
+  const pageSize = 5;
+  let medications = [];
+
+  const renderTable = () => {
+    const searchValue = document.getElementById('searchInput').value.toLowerCase();
+    const filtered = medications.filter(m =>
+      m.patientId.toLowerCase().includes(searchValue) || m.name.toLowerCase().includes(searchValue)
+    );
+    const paginated = filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+    document.getElementById('medicationsTable').innerHTML = paginated.map(m => `
+      <tr>
+        <td>${m.id}</td>
+        <td>${m.patientId}</td>
+        <td>${m.name}</td>
+        <td>${m.dosage}</td>
+        <td>${m.instructions}</td>
+        <td>
+          <button class="btn btn-info btn-sm" onclick="viewMedication('${m.id}')">View</button>
+          <button class="btn btn-warning btn-sm" onclick="editMedication('${m.id}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="confirmDelete('${m.id}')">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+  };
+
+  const loadMedications = () => {
+    fetch('http://localhost:8080/api/medications')
+      .then(res => res.json())
+      .then(data => {
+        medications = data;
+        renderTable();
+      });
+  };
+
+  const confirmDelete = id => {
+    if (confirm("Are you sure you want to delete this medication?")) {
+      fetch(`http://localhost:8080/api/medications/${id}`, { method: 'DELETE' })
+        .then(() => loadMedications());
+    }
+  };
+
+  const viewMedication = id => {
+    const m = medications.find(med => med.id === id);
+    document.getElementById("viewMedicationDetails").innerHTML = `
+      <p><strong>ID:</strong> ${m.id}</p>
+      <p><strong>Patient ID:</strong> ${m.patientId}</p>
+      <p><strong>Name:</strong> ${m.name}</p>
+      <p><strong>Dosage:</strong> ${m.dosage}</p>
+      <p><strong>Instructions:</strong> ${m.instructions}</p>
+    `;
+    new bootstrap.Modal(document.getElementById("viewMedicationModal")).show();
+  };
+
+  const editMedication = id => {
+    const m = medications.find(med => med.id === id);
+    document.getElementById('editId').value = m.id;
+    document.getElementById('editPatientId').value = m.patientId;
+    document.getElementById('editName').value = m.name;
+    document.getElementById('editDosage').value = m.dosage;
+    document.getElementById('editInstructions').value = m.instructions;
+    new bootstrap.Modal(document.getElementById('addMedicationModal')).show();
+  };
+
+  document.getElementById('addMedicationForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const medication = Object.fromEntries(formData.entries());
+
+    if (!medication.patientId || !medication.name || !medication.dosage || !medication.instructions) {
+      alert("All fields are required!");
+      return;
+    }
+
+    const method = medication.id ? 'PUT' : 'POST';
+    const url = medication.id ? `http://localhost:8080/api/medications/${medication.id}` : 'http://localhost:8080/api/medications';
+
+    fetch(url, {
+      method: method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(medication)
+    }).then(() => {
+      this.reset();
+      bootstrap.Modal.getInstance(document.getElementById('addMedicationModal')).hide();
+      loadMedications();
+    });
+  });
+
+  document.getElementById('prevPage').onclick = () => { if (currentPage > 0) currentPage--; renderTable(); };
+  document.getElementById('nextPage').onclick = () => { if ((currentPage + 1) * pageSize < medications.length) currentPage++; renderTable(); };
+  document.getElementById('searchInput').oninput = renderTable;
+
+  loadMedications();
+</script>
+</body>
+</html>
