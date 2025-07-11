@@ -9,7 +9,7 @@ RUN mvn clean install
 # Package stage
 #
 FROM eclipse-temurin:17-jdk
-COPY --from=build /target/hospitalmanagement-0.0.1-SNAPSHOT.jar demo.war
+COPY --from=build /target/hospitalmanagement-0.0.1-SNAPSHOT.jar demo.jar
 # ENV PORT=8080
 EXPOSE 8080
-ENTRYPOINT ["java","-war","demo.war"]
+ENTRYPOINT ["java","-jar","demo.jar"]
