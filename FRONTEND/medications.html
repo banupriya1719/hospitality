@@ -152,7 +152,7 @@
   };
 
   const loadMedications = () => {
-    fetch('http://localhost:8080/api/medications')
+    fetch('https://hospitality-12.onrender.com/api/medications')
       .then(res => res.json())
       .then(data => {
         medications = data;
@@ -162,7 +162,7 @@
 
   const confirmDelete = id => {
     if (confirm("Are you sure you want to delete this medication?")) {
-      fetch(`http://localhost:8080/api/medications/${id}`, { method: 'DELETE' })
+      fetch(`https://hospitality-12.onrender.com/api/medications/${id}`, { method: 'DELETE' })
         .then(() => loadMedications());
     }
   };
@@ -200,7 +200,7 @@
     }
 
     const method = medication.id ? 'PUT' : 'POST';
-    const url = medication.id ? `http://localhost:8080/api/medications/${medication.id}` : 'http://localhost:8080/api/medications';
+    const url = medication.id ? `https://hospitality-12.onrender.com/api/medications/${medication.id}` : 'https://hospitality-12.onrender.com/api/medications';
 
     fetch(url, {
       method: method,
